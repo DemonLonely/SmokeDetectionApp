@@ -1,7 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    // Add gg services gradle plugin
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -34,11 +32,9 @@ android {
 }
 
 dependencies {
-    // Import firebase BoM (define version for all other libraries)
-    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
-    implementation("com.google.firebase:firebase-storage")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-auth")
+    // Okhttp to talk to supabase
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     implementation(libs.appcompat)
     implementation(libs.material)
