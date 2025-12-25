@@ -1,16 +1,17 @@
 package com.example.smokedetection;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.widget.Button;
-import android.widget.EditText;
+import android.view.View;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.smokedetection.databinding.ActivityLoginBinding;
+
 import org.json.JSONObject;
+
 import java.io.IOException;
 import java.util.regex.Pattern;
 
@@ -19,85 +20,100 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 public class LoginActivity extends AppCompatActivity {
+
     private static final String SUPABASE_URL = "https://gklovokybxmonmnuoflk.supabase.co";
     private static final String SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbG92b2t5Ynhtb25tbnVvZmxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTY0NTcsImV4cCI6MjA4MDkzMjQ1N30.rgEFaf0M0WBKNbaintilKHILM3HS4Dnpb40wSbj_hZA";
 
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
-    private static final Pattern PASSWORD_PATTERN =
-            Pattern.compile("^(?=.*[A-Z])(?=.*[!@#\\$%^&*]).+$");
 
-    private EditText inputEmail, inputPassword;
-    private Button btnLogin, btnRegister, btnGuest;
+    // Password mạnh: có số + chữ hoa + ký tự đặc biệt, tối thiểu 6 ký tự
+    private static final Pattern PASSWORD_PATTERN =
+            Pattern.compile("^(?=.*[0-9])(?=.*[A-Z])(?=.*[!@#\\$%^&*]).{6,}$");
+
+    private ActivityLoginBinding b;
     private SupabaseClient supabase;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+
+        b = ActivityLoginBinding.inflate(getLayoutInflater());
+        setContentView(b.getRoot());
 
         supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Check if already log in
+        // Auto-login nếu có token
         SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
         String savedToken = prefs.getString("auth_token", null);
-        if (savedToken != null) {
-            goToMain();
-        }
-
-        inputEmail = findViewById(R.id.inputEmail);
-        inputPassword = findViewById(R.id.inputPassword);
-        btnLogin = findViewById(R.id.btnLogin);
-        btnRegister = findViewById(R.id.btnRegister);
-        btnGuest = findViewById(R.id.btnGuest);
-
-        btnLogin.setOnClickListener(v -> loginUser());
-        btnRegister.setOnClickListener(v -> registerUser());
-        btnGuest.setOnClickListener(v -> loginGuest());
-    }
-
-    private void loginUser() {
-        String email = inputEmail.getText().toString().trim();
-        String password = inputPassword.getText().toString().trim();
-
-        if (email.isEmpty() || password.length() < 6) {
-            Toast.makeText(this, "Email or password incorrect", Toast.LENGTH_SHORT).show();
+        if (savedToken != null && !savedToken.trim().isEmpty()) {
+            goToDashboard();
             return;
         }
 
-        setButtonsEnabled(false);
+        b.btnLogin.setOnClickListener(v -> loginUser());
+        b.btnRegister.setOnClickListener(v -> registerUser());
+        b.btnGuest.setOnClickListener(v -> loginGuest());
+
+        setLoading(false);
+    }
+
+    private void loginUser() {
+        String email = safeText(b.etEmail.getText() != null ? b.etEmail.getText().toString() : "");
+        String password = safeText(b.etPassword.getText() != null ? b.etPassword.getText().toString() : "");
+
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            toast("Wrong email format");
+            return;
+        }
+
+        if (password.length() < 6) {
+            toast("Password must be at least 6 characters");
+            return;
+        }
+
+        setLoading(true);
 
         supabase.signIn(email, password, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    setButtonsEnabled(true);
-                    Toast.makeText(LoginActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                    setLoading(false);
+                    toast("Connection error");
                 });
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                final String responseBody = response.body().string();
+                final String responseBody = (response.body() != null) ? response.body().string() : "";
+
                 runOnUiThread(() -> {
-                    setButtonsEnabled(true);
+                    setLoading(false);
+
                     if (response.isSuccessful()) {
                         try {
-                            // Extract the Token
                             JSONObject json = new JSONObject(responseBody);
-                            String accessToken = json.getString("access_token");
+                            String accessToken = json.optString("access_token", "");
 
-                            // Save Token to phone memory
+                            if (accessToken.isEmpty()) {
+                                toast("Login success but token missing");
+                                return;
+                            }
+
                             getSharedPreferences("AppPrefs", MODE_PRIVATE)
-                                    .edit().putString("auth_token", accessToken).apply();
+                                    .edit()
+                                    .putString("auth_token", accessToken)
+                                    .apply();
 
-                            Toast.makeText(LoginActivity.this, "Login success!", Toast.LENGTH_SHORT).show();
-                            goToMain();
-                        } catch (Exception e) {
-                            Toast.makeText(LoginActivity.this, "Error parsing token", Toast.LENGTH_SHORT).show();
+                            toast("Login success!");
+                            goToDashboard();
+                        } catch (Exception ex) {
+                            toast("Error parsing token");
                         }
                     } else {
-                        Toast.makeText(LoginActivity.this, "Login failed", Toast.LENGTH_SHORT).show();
+                        // Nếu muốn debug chi tiết:
+                        // toast("Login failed: " + response.code());
+                        toast("Login failed");
                     }
                 });
             }
@@ -105,51 +121,52 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void registerUser() {
-        String email = inputEmail.getText().toString().trim();
-        String password = inputPassword.getText().toString().trim();
+        String email = safeText(b.etEmail.getText() != null ? b.etEmail.getText().toString() : "");
+        String password = safeText(b.etPassword.getText() != null ? b.etPassword.getText().toString() : "");
 
-        // Check email format
         if (!EMAIL_PATTERN.matcher(email).matches()) {
-            Toast.makeText(this, "Wrong email format", Toast.LENGTH_SHORT).show();
+            toast("Wrong email format");
             return;
         }
 
-        // Check valid password
         if (!PASSWORD_PATTERN.matcher(password).matches()) {
-            Toast.makeText(this, "Password must have at least 1 uppercase, 1 number, and 1 symbol", Toast.LENGTH_LONG).show();
+            toast("Password must have 1 uppercase, 1 number, 1 symbol, min 6 chars");
             return;
         }
 
-        setButtonsEnabled(false);
+        setLoading(true);
 
         supabase.signUp(email, password, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    setButtonsEnabled(true);
-                    Toast.makeText(LoginActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                    setLoading(false);
+                    toast("Connection error");
                 });
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                final String body = response.body().string();
+                final String body = (response.body() != null) ? response.body().string() : "";
+
                 runOnUiThread(() -> {
-                    setButtonsEnabled(true);
+                    setLoading(false);
+
                     if (response.isSuccessful()) {
-                        Toast.makeText(LoginActivity.this, "Registered successfully!", Toast.LENGTH_LONG).show();
+                        toast("Registered successfully!");
+                        // tự login sau khi đăng ký
                         loginUser();
                     } else {
-                        // Check if email already exists
                         try {
                             JSONObject json = new JSONObject(body);
-                            if (json.has("message") && json.getString("message").contains("already registered")) {
-                                Toast.makeText(LoginActivity.this, "Email existed", Toast.LENGTH_SHORT).show();
+                            String message = json.optString("message", "");
+                            if (message.toLowerCase().contains("already")) {
+                                toast("Email existed");
                             } else {
-                                Toast.makeText(LoginActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                                toast("Registration failed");
                             }
-                        } catch (Exception e) {
-                            Toast.makeText(LoginActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                        } catch (Exception ex) {
+                            toast("Registration failed");
                         }
                     }
                 });
@@ -158,20 +175,40 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginGuest() {
-        // Clear old tokens (Guest has no token)
-        getSharedPreferences("AppPrefs", MODE_PRIVATE).edit().clear().apply();
-        Toast.makeText(this, "Welcome Guest", Toast.LENGTH_SHORT).show();
-        goToMain();
+        getSharedPreferences("AppPrefs", MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply();
+
+        toast("Welcome Guest");
+        goToDashboard();
     }
 
-    private void setButtonsEnabled(boolean enabled) {
-        btnLogin.setEnabled(enabled);
-        btnRegister.setEnabled(enabled);
-        btnGuest.setEnabled(enabled);
+    private void setLoading(boolean loading) {
+        // nếu layout bạn không có progress thì sẽ crash
+        // nên đảm bảo activity_login.xml có view id="@+id/progress"
+        b.progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+
+        b.btnLogin.setEnabled(!loading);
+        b.btnRegister.setEnabled(!loading);
+        b.btnGuest.setEnabled(!loading);
+
+        b.etEmail.setEnabled(!loading);
+        b.etPassword.setEnabled(!loading);
     }
 
-    private void goToMain(){
-        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+    // ✅ FIX CRASH: chuyển qua DashboardActivity thay vì MainActivity
+    private void goToDashboard() {
+        Intent i = new Intent(LoginActivity.this, DashboardActivity.class);
+        startActivity(i);
         finish();
+    }
+
+    private void toast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    private String safeText(String s) {
+        return s == null ? "" : s.trim();
     }
 }

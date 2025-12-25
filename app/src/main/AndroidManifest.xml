@@ -1,34 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- For android <= 12 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <!-- For android > 12 -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Nếu bạn dùng picker hệ thống (GetContent) thì thường KHÔNG cần storage permission.
+         Giữ cũng không sao. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SmokeDetectionApp">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true" />
+        android:theme="@style/Theme.SmokeDetectionApp"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+
+        <!-- Launcher: Login (UI đẹp mới) -->
         <activity
             android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <!-- Dashboard -->
+        <activity android:name=".DashboardActivity" android:exported="false" />
+
+        <!-- Image / Video / Live cam -->
+        <activity android:name=".ImageDetectActivity" android:exported="false" />
+        <activity android:name=".VideoDetectActivity" android:exported="false" />
+        <activity android:name=".LiveCamActivity" android:exported="false" />
+
+        <!-- Nếu bạn vẫn giữ ResultActivity cũ -->
+        <activity android:name=".ResultActivity" android:exported="false" />
+
+    </application>
 </manifest>

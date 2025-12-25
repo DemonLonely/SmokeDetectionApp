@@ -25,14 +25,28 @@ public class SupabaseClient {
     // Register
     public void signUp(String email, String password, Callback callback) {
         String fullUrl = supabaseUrl + "/auth/v1/signup";
-        String json = "{\"email\": \"" + email + "\", \"password\": \"" + password + "\"}";
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("email", email);
+            jsonObject.put("password", password);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        String json = jsonObject.toString();
         postRequest(fullUrl, json, callback);
     }
 
     // Login
     public void signIn(String email, String password, Callback callback) {
         String fullUrl = supabaseUrl + "/auth/v1/token?grant_type=password";
-        String json = "{\"email\": \"" + email + "\", \"password\": \"" + password + "\"}";
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("email", email);
+            jsonObject.put("password", password);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        String json = jsonObject.toString();
         postRequest(fullUrl, json, callback);
     }
 
@@ -80,5 +94,42 @@ public class SupabaseClient {
                 .build();
 
         client.newCall(request).enqueue(callback);
+    }
+
+    // Send code to model for detection
+    public Call sendToDetectionServer(String serverUrl, String mediaType, byte[] fileBytes, String filename, String bucketName, Callback callback) {
+        // Determine endpoint based on type ("image" or "video")
+        String endpoint = mediaType.equals("image") ? "/process_image" : "/process_video";
+        String fullUrl = serverUrl + endpoint;
+
+        // Determine MIME type
+        MediaType mimeType = mediaType.equals("image")
+                ? MediaType.parse("image/jpeg")
+                : MediaType.parse("video/mp4");
+
+        // Build the Multipart Request (This matches the "file", "media_type", and "bucket_name" fields in server.py
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", filename,
+                        RequestBody.create(fileBytes, mimeType))
+                .addFormDataPart("media_type", mediaType)
+                .addFormDataPart("bucket_name", bucketName)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(fullUrl)
+                .post(requestBody)
+                .build();
+
+        // Increase timeout for video uploads (videos take longer)
+        OkHttpClient heavyClient = client.newBuilder()
+                .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+
+        Call call = heavyClient.newCall(request);   // Create call object
+        call.enqueue(callback);  // Start it
+        return call;
     }
 }

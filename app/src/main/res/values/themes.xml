@@ -1,9 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.SmokeDetectionApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+    <style name="Theme.SmokeDetectionApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+
+        <item name="colorSecondary">@color/secondary</item>
+
+        <item name="android:statusBarColor">@color/bg_top</item>
+        <item name="android:navigationBarColor">@color/bg_bottom</item>
+
+        <item name="android:fontFamily">sans-serif</item>
+
+        <!-- giữ pill button làm default (ok) -->
+        <item name="materialButtonStyle">@style/Widget.SmokeDetector.PillButton</item>
     </style>
 
-    <style name="Theme.SmokeDetectionApp" parent="Base.Theme.SmokeDetectionApp" />
+    <style name="Widget.SmokeDetector.PillButton" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">28dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="iconPadding">10dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@color/accent</item>
+        <item name="android:textColor">@color/on_primary</item>
+    </style>
+
+    <!-- ===== Dashboard button styles (FIX chữ + màu) ===== -->
+
+    <!-- Button 1: Primary (xanh, chữ trắng) -->
+    <style name="Widget.SmokeDetector.ActionPrimary" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">14dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="android:textColor">@color/on_primary</item>
+    </style>
+
+    <!-- Button 2: Tonal (nền card_glass, chữ trắng) -->
+    <style name="Widget.SmokeDetector.ActionTonal" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">14dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@color/card_glass</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <!-- Button 3: Outlined (FIX: chữ xanh + nền trong suốt + viền xanh) -->
+    <style name="Widget.SmokeDetector.ActionOutlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="cornerRadius">14dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textStyle">bold</item>
+
+        <!-- QUAN TRỌNG: chữ không còn trắng nữa -->
+        <item name="android:textColor">@color/primary</item>
+
+        <!-- nền trong suốt để không bị trắng -->
+        <item name="backgroundTint">@android:color/transparent</item>
+
+        <item name="strokeColor">@color/primary</item>
+        <item name="strokeWidth">2dp</item>
+    </style>
+
 </resources>
